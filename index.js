@@ -1,3 +1,5 @@
+import { isSpecialCity, getHistoricalPrediction } from './historyWeatherPredict.js';
+
 const userTab = document.querySelector("[data-userWeather]");
 const searchTab = document.querySelector("[data-searchWeather]");
 const userContainer = document.querySelector(".weather-container");
@@ -10,6 +12,84 @@ const userInfoContainer = document.querySelector(".user-info-container");
 let oldTab = userTab;
 //API key for open weather map
 const API_KEY = "c2fbe58c57841bf63a954c4d4a2b1c19";
+
+const historicalCityData = {
+    "auli": {
+        weather: {
+            name: "Auli",
+            sys: { country: "in" },
+            weather: [{ description: "partly cloudy", icon: "03d" }],
+            main: { temp: 15, humidity: 65 },
+            wind: { speed: 2.1 },
+            clouds: { all: 40 }
+        },
+        pollution: {
+            list: [{
+                main: { aqi: 2 },
+                components: {
+                    pm2_5: 12.5,
+                    pm10: 18.6,
+                    no2: 8.2,
+                    o3: 68.3
+                }
+            }]
+        },
+        alerts: []
+    },
+    "chapda": {
+        weather: {
+            name: "Chapda",
+            sys: { country: "in" },
+            weather: [{ description: "clear sky", icon: "01d" }],
+            main: { temp: 28, humidity: 55 },
+            wind: { speed: 3.5 },
+            clouds: { all: 10 }
+        },
+        pollution: {
+            list: [{
+                main: { aqi: 1 },
+                components: {
+                    pm2_5: 5.2,
+                    pm10: 9.4,
+                    no2: 4.1,
+                    o3: 45.8
+                }
+            }]
+        },
+        alerts: []
+    },
+    "banavasi": {
+        weather: {
+            name: "Banavasi",
+            sys: { country: "in" },
+            weather: [{ description: "light rain", icon: "10d" }],
+            main: { temp: 26, humidity: 80 },
+            wind: { speed: 1.8 },
+            clouds: { all: 65 }
+        },
+        pollution: {
+            list: [{
+                main: { aqi: 3 },
+                components: {
+                    pm2_5: 25.7,
+                    pm10: 35.2,
+                    no2: 12.8,
+                    o3: 72.1
+                }
+            }]
+        },
+        alerts: [
+            {
+                event: "Heavy Rainfall Warning",
+                start: Math.floor(Date.now() / 1000),
+                end: Math.floor(Date.now() / 1000) + 86400,
+                description: "Heavy rainfall expected in some areas. Please take necessary precautions.",
+                sender_name: "Historical Weather Service"
+            }
+        ]
+    }
+};
+
 //Initially, old tab is active
 oldTab.classList.add("current-tab");
 
@@ -192,6 +272,34 @@ function renderWeatherAlerts(alertData = []) {
     });
 }
 
+function getHistoricalData(cityName) {
+    return getHistoricalPrediction(cityName);
+}
+
+function showPredictionMessage(cityName) {
+    const predictionMsg = document.createElement("div");
+    predictionMsg.className = "prediction-message";
+    predictionMsg.innerHTML = `
+        <i class="fas fa-info-circle"></i>
+        <span>Showing predicted weather for ${cityName} based on historical data for ${new Date().toLocaleString('default', { month: 'long' })}</span>
+    `;
+    
+    // Remove any existing prediction message
+    const existingMsg = document.querySelector(".prediction-message");
+    if (existingMsg) {
+        existingMsg.remove();
+    }
+    
+    // Add message before the weather card
+    const weatherCard = document.querySelector(".weather-card");
+    userInfoContainer.insertBefore(predictionMsg, weatherCard);
+    
+    // Auto-remove after 10 seconds
+    setTimeout(() => {
+        predictionMsg.classList.add("fade-out");
+        setTimeout(() => predictionMsg.remove(), 1000);
+    }, 10000);
+}
 
 //Function to find user location
 function getLocation() {
@@ -222,7 +330,6 @@ function showPosition(position) {
     fetchUserWeatherInfo(userCoordinates);
 }
 
-//Function to fetch weather info of searched city
 async function fetchSearchWeatherInfo(city) {
     loadingScreen.classList.add("active");
     userInfoContainer.classList.remove("active");
@@ -231,6 +338,25 @@ async function fetchSearchWeatherInfo(city) {
     console.log("Fetching weather info for city:", city);
 
     try {
+        if (isSpecialCity(city)) {
+            // Handle special cities with historical data
+            console.log(`Using historical data for ${city}`);
+            const historicalData = getHistoricalData(city);
+            
+            loadingScreen.classList.remove("active");
+            userInfoContainer.classList.add("active");
+            
+            // Render the historical data
+            renderWeatherInfo(historicalData.weather);
+            renderPollutionInfo(historicalData.pollution);
+            renderWeatherAlerts(historicalData.alerts || []);
+            
+            // Show the prediction message
+            showPredictionMessage(city);
+            
+            return;
+        }
+        
         // First get coordinates from city name
         const geoResponse = await fetch(
             `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=1&appid=${API_KEY}`
@@ -275,6 +401,7 @@ async function fetchSearchWeatherInfo(city) {
         alert("Unable to find the city. Please try again with a valid city name.");
     }
 }
+
 //Event listener for grant access button
 const grantAccessButton = document.querySelector("[data-grantAccess]");
 grantAccessButton.addEventListener("click", getLocation);

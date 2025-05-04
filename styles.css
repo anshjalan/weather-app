@@ -519,3 +519,41 @@ h1 {
         width: 100%;
     }
 }
+
+.prediction-message {
+    background-color: rgba(255, 152, 0, 0.2);
+    border-left: 4px solid var(--warning);
+    border-radius: 10px;
+    padding: 12px 20px;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeIn 0.5s ease forwards;
+    width: 100%;
+}
+
+.prediction-message i {
+    color: var(--warning);
+    font-size: 1.2rem;
+}
+
+.prediction-message span {
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.fade-out {
+    animation: fadeOut 1s ease forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+}
